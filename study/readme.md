@@ -39,7 +39,7 @@ params
 rlp           --以太坊序列化处理
 rpc           --远程方法调用
 signer
-swarm
+swarm         --swarm网络处理
 tests         --测试相关
 trie          --以太坊重要的数据结构Package trie implements Merkle Patricia Tries.
 triedb
