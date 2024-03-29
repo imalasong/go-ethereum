@@ -10,32 +10,39 @@ import (
 func main() {
 
 	//printFileNames(".", "\\.+")
-	printFileNames("cmd", " ├── ", " └── ", "\\.+")
+	printFileNames("core/vm/runtime", " ├── ", " └── ", ".+_test.go", true, true)
 }
 
-func printFileNames(path string, startStr string, endStr string, ignoreReg string) {
+func printFileNames(path string, startStr string, endStr string, ignoreReg string, printFile bool, printDir bool) {
 	dir, err := os.ReadDir(path)
 	if err != nil {
 		panic(err)
 	}
-	var ss []string
+	var dirs []string
+	var files []string
 	for _, d := range dir {
-		if d.IsDir() {
+		if d.IsDir() && printDir {
 			if flag, _ := regexp.Match(ignoreReg, []byte(d.Name())); ignoreReg == "" || !flag {
-				ss = append(ss, d.Name())
+				dirs = append(dirs, d.Name())
+			}
+		} else if printFile {
+			if flag, _ := regexp.Match(ignoreReg, []byte(d.Name())); ignoreReg == "" || !flag {
+				files = append(files, d.Name())
 			}
 		}
 	}
-	sort.Strings(ss)
-	for i, d := range ss {
+	sort.Strings(dirs)
+	sort.Strings(files)
+	dirs = append(dirs, files...)
+	for i, d := range dirs {
 		print := d
 		if startStr != "" {
-			if i < len(ss)-1 {
+			if i < len(dirs)-1 {
 				print = startStr + print
 			}
 		}
 		if endStr != "" {
-			if i == len(ss)-1 {
+			if i == len(dirs)-1 {
 				print = endStr + print
 			}
 		}
