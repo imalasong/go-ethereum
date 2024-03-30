@@ -4,7 +4,7 @@ accounts      --实现了一个高等级的以太坊账户管理
 beacon
 build         --主要是编译和构建的一些脚本和配置
 cmd           --命令行工具，又分了很多的命令行工具，下面一个一个介绍
-├── abidump   --
+├── abidump   --以太坊智能合约定义转换为类型安全的 Go 或 Java 包的源码转换器
 ├── abigen    --源代码生成器，用于将以太坊合约定义转换为易于使用、编译时类型安全的Go包
 ├── blsync    
 ├── bootnode  --启动一个仅仅实现网络发现的节点
@@ -21,6 +21,36 @@ common        --提供了一些公共的工具类
 consensus     --提供了以太坊的一些共识算法，比如ethhash, clique(proof-of-authority)
 console       --console类
 core          --以太坊的核心数据结构和算法(虚拟机，状态，区块链，布隆过滤器)
+├──vm
+   ├── runtime      --执行环境 
+       ├── doc.go
+       ├── env.go
+       └── runtime.go  --运行接口，测试使用
+   ├── contract.go  
+   ├── common.go
+   ├── analysis.go     --跳转目标判定
+   ├── contracts.go
+   ├── doc.go
+   ├── eips.go
+   ├── errors.go
+   ├── evm.go
+   ├── testdata
+   ├── gas.go
+   ├── gas_table.go
+   ├── instructions.go
+   ├── interface.go
+   ├── interpreter.go
+   ├── jump_table.go
+   ├── jump_table_export.go
+   ├── logger.go
+   ├── memory.go
+   ├── memory_table.go
+   ├── opcodes.go
+   ├── operations_acl.go
+   ├── stack.go
+   └── stack_table.go
+
+    
 crypto        --加密和hash算法
 docs          --官方文档
 eth           --实现了以太坊的协议
