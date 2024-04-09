@@ -10,3 +10,7 @@ abigen --abi ./build/Storage.abi --pkg main --type Storage --out Storage.go
 solc --bin Storage.sol -o Storage.bin
 
 abigen --abi ./build/Storage.abi --pkg main --type Storage --out Storage.go --bin Storage.bin/Storage.bin
+
+
+# solidity一步生成go文件
+solc Storage.sol --combined-json abi,bin | abigen --pkg main --type storage --out Storage.go --combined-json -

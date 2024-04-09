@@ -49,7 +49,7 @@ geth attach \\.\pipe\geth.ipc
 eth.accounts
 eth.getBalance(eth.accounts[0])/1e18
 
-web3.fromWei(eth.getBalance(eth.accounts[0]))
+web3.fromWei(eth.getBalance("0xc2b7813b51228b883311d0b49fdac4b2df714ffd"))
 
 clef newaccount --keystore geth-tutorial/keystore
 
@@ -57,7 +57,7 @@ eth.sendTransaction({from:eth.accounts[0], to: eth.accounts[1], value: web3.toWe
 
 web3.fromWei(eth.getBalance(eth.accounts[1]))
 
-eth.getTransaction("0x6b72b6ed867f78da4d684e958e81ee3de28d19a00df9fa2c75b8e5067071fff4")
+eth.getTransaction("0x4fad0f1e900cca6f62c5c37533bac2902c87e2b0531d9e287c337175f9fba8ad")
 
 web3.eth.getStorageAt("0x2e64cec1", 0)
 
