@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 func main() {
-	p := Person{
+	var p Animal = &Person{
 		Name: "imalasong",
 		S:    []int{1, 2, 3},
 		A:    [2]int{1, 2},
@@ -14,6 +14,15 @@ func main() {
 	p.PlanP()
 	//(&p).PlanP()
 	fmt.Printf("%#v\n", p)
+
+	if person, ok := p.(Animal); ok {
+		fmt.Printf("%#v\n", person)
+	}
+}
+
+type Animal interface {
+	PlanM()
+	PlanP()
 }
 
 type Person struct {
