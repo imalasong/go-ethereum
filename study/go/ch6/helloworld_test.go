@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/holiman/uint256"
 	"github.com/shopspring/decimal"
 	"math"
 	"math/big"
@@ -33,8 +34,8 @@ func Test2(t *testing.T) {
 	fmt.Println(math.MaxInt64)
 	fmt.Println(b1.String())
 
-	u1 := NewInt(math.MaxInt64)
-	u1.Add(u1, NewInt(math.MaxInt64))
+	u1 := uint256.NewInt(math.MaxInt64)
+	u1.Add(u1, uint256.NewInt(math.MaxInt64))
 	fmt.Println(u1.String())
 
 	fmt.Println("-----------------------------------")

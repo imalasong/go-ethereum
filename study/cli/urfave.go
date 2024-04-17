@@ -17,6 +17,10 @@ func main() {
 			fmt.Printf("main run:%s\n", file)
 			return nil
 		},
+		After: func(context *cli.Context) error {
+			fmt.Printf("run after function\n")
+			return nil
+		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "file",
