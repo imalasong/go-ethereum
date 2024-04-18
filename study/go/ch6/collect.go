@@ -2,49 +2,16 @@ package main
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/ethereum/go-ethereum/common/math"
 	"strconv"
 	"sync"
-	"time"
 )
 
-func main() {
-	set := new(SetInt)
-	//set.Add(1)
-	//set.Add(10)
-	//set.Add(10)
-	//set.Add(2)
-	//set.Add(0)
-	//set.Add(0)
-	//set.Remove(0)
-	//set.Remove(2)
-	//set.Remove(10)
-	//set.Remove(1)
-	//
-	//set.Add(100)
-	//set.Add(500)
-	//set.Add(100)
-	var i uint64 = 0
-	start := time.Now()
-	for ; i < math.MaxInt32; i++ {
-		set.Add(i)
-		if !set.Has(i) {
-			fmt.Printf("error digital:%d\n", i)
-		}
-	}
-	fmt.Printf("comparable complete:%f/s\n", time.Since(start).Seconds())
-	//fmt.Println(set.Has(1))
-	//fmt.Println(set.Has(2))
-	//fmt.Println(set.Has(3))
-	//fmt.Println(set.Has(4))
-	//fmt.Println(set.Has(1))
-	//fmt.Println(*set)
-	//fmt.Println(set)
-	//set.Clear()
-	start = time.Now()
-	fmt.Println("result:" + set.ToString())
-	fmt.Printf("tostring complete:%f/s\n", time.Since(start).Seconds())
+type ISet interface {
+	Add(elem uint64)
+	Remove(elem uint64)
+	Has(elem uint64) bool
+	Clear()
+	String() string
 }
 
 type SetInt struct {
@@ -60,27 +27,26 @@ func (s *SetInt) Add(elem uint64) {
 	}
 	index, bit := int(elem/64), elem%64
 	if index >= len(s.data) {
-		//s.data = append(s.data, 0)
-		s.data = append(s.data, make([]uint64, index-len(s.data)+1)...)
+		ss := make([]uint64, index-len(s.data)+1)
+		s.data = append(s.data, ss...)
 	}
 	s.data[index] |= 1 << bit
 }
 
-func (s *SetInt) Remove(elem uint64) bool {
+func (s *SetInt) Remove(elem uint64) {
 	//s.Lock()
 	//defer s.Unlock()
 	if s.data == nil {
-		return false
+		return
 	}
 	index, bit := int(elem/64), elem%64
 	if s.data[index] == 0 {
-		return false
+		return
 	}
 	//位清空&^：
 	//对于 a &^ b -->
 	//对于b的每个数值：如果是0，取a对应位的数；如果是1，结果位是0
 	s.data[index] &^= 1 << bit
-	return true
 }
 
 func (s *SetInt) Has(elem uint64) bool {
@@ -99,7 +65,7 @@ func (s *SetInt) Clear() {
 	s.data = nil
 }
 
-func (s *SetInt) ToString() string {
+func (s *SetInt) String() string {
 	//s.Lock()
 	//defer s.Unlock()
 	if s.data == nil {

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/holiman/uint256"
-	"github.com/shopspring/decimal"
+	//"github.com/shopspring/decimal"
 	"math"
 	"math/big"
 	"testing"
@@ -45,12 +45,12 @@ func Test2(t *testing.T) {
 	f3 := f1 - f2
 	fmt.Println(f3)
 
-	f4, ok := decimal.NewFromFloat(f1).Sub(decimal.NewFromFloat(f2)).Float64()
-	if ok {
-		fmt.Println(f4)
-	}
-	fmt.Println("00000000000")
-	fmt.Println(decimal.NewFromFloat(f1).Sub(decimal.NewFromFloat(f2)).BigFloat())
+	//f4, ok := decimal.NewFromFloat(f1).Sub(decimal.NewFromFloat(f2)).Float64()
+	//if ok {
+	//	fmt.Println(f4)
+	//}
+	//fmt.Println("00000000000")
+	//fmt.Println(decimal.NewFromFloat(f1).Sub(decimal.NewFromFloat(f2)).BigFloat())
 
 	ff1 := big.NewFloat(f1)
 	ff1 = ff1.Sub(ff1, big.NewFloat(f2))

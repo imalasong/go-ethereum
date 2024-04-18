@@ -1,8 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"testing"
+)
 
-func main() {
+func TestM2(t *testing.T) {
 	var p Animal = &Person{
 		Name: "imalasong",
 		S:    []int{1, 2, 3},
