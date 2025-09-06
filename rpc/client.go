@@ -45,6 +45,7 @@ var (
 const (
 	defaultDialTimeout = 10 * time.Second // used if context has no deadline
 	subscribeTimeout   = 10 * time.Second // overall timeout eth_subscribe, rpc_modules calls
+	unsubscribeTimeout = 10 * time.Second // timeout for *_unsubscribe calls
 )
 
 const (
@@ -484,12 +485,6 @@ func (c *Client) Notify(ctx context.Context, method string, args ...interface{})
 // EthSubscribe registers a subscription under the "eth" namespace.
 func (c *Client) EthSubscribe(ctx context.Context, channel interface{}, args ...interface{}) (*ClientSubscription, error) {
 	return c.Subscribe(ctx, "eth", channel, args...)
-}
-
-// ShhSubscribe registers a subscription under the "shh" namespace.
-// Deprecated: use Subscribe(ctx, "shh", ...).
-func (c *Client) ShhSubscribe(ctx context.Context, channel interface{}, args ...interface{}) (*ClientSubscription, error) {
-	return c.Subscribe(ctx, "shh", channel, args...)
 }
 
 // Subscribe calls the "<namespace>_subscribe" method with the given arguments,

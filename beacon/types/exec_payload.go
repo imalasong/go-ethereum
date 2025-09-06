@@ -34,7 +34,7 @@ type payloadType interface {
 }
 
 // convertPayload converts a beacon chain execution payload to types.Block.
-func convertPayload[T payloadType](payload T, parentRoot *zrntcommon.Root) (*types.Block, error) {
+func convertPayload[T payloadType](payload T, parentRoot *zrntcommon.Root, requests [][]byte) (*types.Block, error) {
 	var (
 		header       types.Header
 		transactions []*types.Transaction
@@ -62,13 +62,13 @@ func convertPayload[T payloadType](payload T, parentRoot *zrntcommon.Root) (*typ
 	default:
 		panic("unsupported block type")
 	}
-
-	block := types.NewBlockWithHeader(&header)
-	block = block.WithBody(transactions, nil)
-	block = block.WithWithdrawals(withdrawals)
-	hash := block.Hash()
-	if hash != expectedHash {
-		return block, fmt.Errorf("Sanity check failed, payload hash does not match (expected %x, got %x)", expectedHash, hash)
+	if requests != nil {
+		reqHash := types.CalcRequestsHash(requests)
+		header.RequestsHash = &reqHash
+	}
+	block := types.NewBlockWithHeader(&header).WithBody(types.Body{Transactions: transactions, Withdrawals: withdrawals})
+	if hash := block.Hash(); hash != expectedHash {
+		return nil, fmt.Errorf("sanity check failed, payload hash does not match (expected %x, got %x)", expectedHash, hash)
 	}
 	return block, nil
 }

@@ -12,7 +12,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package pathdb
 
@@ -21,7 +21,8 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -34,7 +35,7 @@ type HistoryStats struct {
 }
 
 // sanitizeRange limits the given range to fit within the local history store.
-func sanitizeRange(start, end uint64, freezer *rawdb.ResettableFreezer) (uint64, uint64, error) {
+func sanitizeRange(start, end uint64, freezer ethdb.AncientReader) (uint64, uint64, error) {
 	// Load the id of the first history object in local store.
 	tail, err := freezer.Tail()
 	if err != nil {
@@ -60,7 +61,7 @@ func sanitizeRange(start, end uint64, freezer *rawdb.ResettableFreezer) (uint64,
 	return first, last, nil
 }
 
-func inspectHistory(freezer *rawdb.ResettableFreezer, start, end uint64, onHistory func(*history, *HistoryStats)) (*HistoryStats, error) {
+func inspectHistory(freezer ethdb.AncientReader, start, end uint64, onHistory func(*stateHistory, *HistoryStats)) (*HistoryStats, error) {
 	var (
 		stats  = &HistoryStats{}
 		init   = time.Now()
@@ -73,7 +74,7 @@ func inspectHistory(freezer *rawdb.ResettableFreezer, start, end uint64, onHisto
 	for id := start; id <= end; id += 1 {
 		// The entire history object is decoded, although it's unnecessary for
 		// account inspection. TODO(rjl493456442) optimization is worthwhile.
-		h, err := readHistory(freezer, id)
+		h, err := readStateHistory(freezer, id)
 		if err != nil {
 			return nil, err
 		}
@@ -96,8 +97,8 @@ func inspectHistory(freezer *rawdb.ResettableFreezer, start, end uint64, onHisto
 }
 
 // accountHistory inspects the account history within the range.
-func accountHistory(freezer *rawdb.ResettableFreezer, address common.Address, start, end uint64) (*HistoryStats, error) {
-	return inspectHistory(freezer, start, end, func(h *history, stats *HistoryStats) {
+func accountHistory(freezer ethdb.AncientReader, address common.Address, start, end uint64) (*HistoryStats, error) {
+	return inspectHistory(freezer, start, end, func(h *stateHistory, stats *HistoryStats) {
 		blob, exists := h.accounts[address]
 		if !exists {
 			return
@@ -108,13 +109,18 @@ func accountHistory(freezer *rawdb.ResettableFreezer, address common.Address, st
 }
 
 // storageHistory inspects the storage history within the range.
-func storageHistory(freezer *rawdb.ResettableFreezer, address common.Address, slot common.Hash, start uint64, end uint64) (*HistoryStats, error) {
-	return inspectHistory(freezer, start, end, func(h *history, stats *HistoryStats) {
+func storageHistory(freezer ethdb.AncientReader, address common.Address, slot common.Hash, start uint64, end uint64) (*HistoryStats, error) {
+	slotHash := crypto.Keccak256Hash(slot.Bytes())
+	return inspectHistory(freezer, start, end, func(h *stateHistory, stats *HistoryStats) {
 		slots, exists := h.storages[address]
 		if !exists {
 			return
 		}
-		blob, exists := slots[slot]
+		key := slotHash
+		if h.meta.version != stateHistoryV0 {
+			key = slot
+		}
+		blob, exists := slots[key]
 		if !exists {
 			return
 		}
@@ -124,7 +130,7 @@ func storageHistory(freezer *rawdb.ResettableFreezer, address common.Address, sl
 }
 
 // historyRange returns the block number range of local state histories.
-func historyRange(freezer *rawdb.ResettableFreezer) (uint64, uint64, error) {
+func historyRange(freezer ethdb.AncientReader) (uint64, uint64, error) {
 	// Load the id of the first history object in local store.
 	tail, err := freezer.Tail()
 	if err != nil {
@@ -139,11 +145,11 @@ func historyRange(freezer *rawdb.ResettableFreezer) (uint64, uint64, error) {
 	}
 	last := head - 1
 
-	fh, err := readHistory(freezer, first)
+	fh, err := readStateHistory(freezer, first)
 	if err != nil {
 		return 0, 0, err
 	}
-	lh, err := readHistory(freezer, last)
+	lh, err := readStateHistory(freezer, last)
 	if err != nil {
 		return 0, 0, err
 	}

@@ -81,6 +81,10 @@ func (api *DownloaderAPI) eventLoop() {
 				prog.TxIndexFinishedBlocks = txProg.Indexed
 				prog.TxIndexRemainingBlocks = txProg.Remaining
 			}
+			remain, err := api.chain.StateIndexProgress()
+			if err == nil {
+				prog.StateIndexRemaining = remain
+			}
 			return prog
 		}
 	)
@@ -129,7 +133,7 @@ func (api *DownloaderAPI) eventLoop() {
 	}
 }
 
-// Syncing provides information when this nodes starts synchronising with the Ethereum network and when it's finished.
+// Syncing provides information when this node starts synchronising with the Ethereum network and when it's finished.
 func (api *DownloaderAPI) Syncing(ctx context.Context) (*rpc.Subscription, error) {
 	notifier, supported := rpc.NotifierFromContext(ctx)
 	if !supported {
@@ -196,7 +200,7 @@ func (s *SyncStatusSubscription) Unsubscribe() {
 }
 
 // SubscribeSyncStatus creates a subscription that will broadcast new synchronisation updates.
-// The given channel must receive interface values, the result can either.
+// The given channel must receive interface values, the result can either be a SyncingResult or false.
 func (api *DownloaderAPI) SubscribeSyncStatus(status chan interface{}) *SyncStatusSubscription {
 	api.installSyncSubscription <- status
 	return &SyncStatusSubscription{api: api, c: status}

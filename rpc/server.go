@@ -18,7 +18,9 @@ package rpc
 
 import (
 	"context"
+	"errors"
 	"io"
+	"net"
 	"sync"
 	"sync/atomic"
 
@@ -52,6 +54,7 @@ type Server struct {
 	batchItemLimit     int
 	batchResponseLimit int
 	httpBodyLimit      int
+	wsReadLimit        int64
 }
 
 // NewServer creates a new server instance with no registered handlers.
@@ -60,6 +63,7 @@ func NewServer() *Server {
 		idgen:         randomIDGenerator(),
 		codecs:        make(map[ServerCodec]struct{}),
 		httpBodyLimit: defaultBodyLimit,
+		wsReadLimit:   wsDefaultReadLimit,
 	}
 	server.run.Store(true)
 	// Register the default service providing meta information about the RPC service such
@@ -85,6 +89,13 @@ func (s *Server) SetBatchLimits(itemLimit, maxResponseSize int) {
 // This method should be called before processing any requests via ServeHTTP.
 func (s *Server) SetHTTPBodyLimit(limit int) {
 	s.httpBodyLimit = limit
+}
+
+// SetWebsocketReadLimit sets the limit for max message size for Websocket requests.
+//
+// This method should be called before processing any requests via Websocket server.
+func (s *Server) SetWebsocketReadLimit(limit int64) {
+	s.wsReadLimit = limit
 }
 
 // RegisterName creates a service for the given receiver type under the given name. When no
@@ -151,8 +162,8 @@ func (s *Server) serveSingleRequest(ctx context.Context, codec ServerCodec) {
 
 	reqs, batch, err := codec.readBatch()
 	if err != nil {
-		if err != io.EOF {
-			resp := errorMessage(&invalidMessageError{"parse error"})
+		if msg := messageForReadError(err); msg != "" {
+			resp := errorMessage(&invalidMessageError{msg})
 			codec.writeJSON(ctx, resp, true)
 		}
 		return
@@ -162,6 +173,20 @@ func (s *Server) serveSingleRequest(ctx context.Context, codec ServerCodec) {
 	} else {
 		h.handleMsg(reqs[0])
 	}
+}
+
+func messageForReadError(err error) string {
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		if netErr.Timeout() {
+			return "read timeout"
+		} else {
+			return "read error"
+		}
+	} else if err != io.EOF {
+		return "parse error"
+	}
+	return ""
 }
 
 // Stop stops reading new requests, waits for stopPendingRequestTimeout to allow pending

@@ -23,22 +23,24 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/beacon/engine"
+	"github.com/ethereum/go-ethereum/beacon/params"
 	"github.com/ethereum/go-ethereum/beacon/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ctypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
 type engineClient struct {
-	config     *lightClientConfig
+	config     *params.ClientConfig
 	rpc        *rpc.Client
 	rootCtx    context.Context
 	cancelRoot context.CancelFunc
 	wg         sync.WaitGroup
 }
 
-func startEngineClient(config *lightClientConfig, rpc *rpc.Client, headCh <-chan types.ChainHeadEvent) *engineClient {
+func startEngineClient(config *params.ClientConfig, rpc *rpc.Client, headCh <-chan types.ChainHeadEvent) *engineClient {
 	ctx, cancel := context.WithCancel(context.Background())
 	ec := &engineClient{
 		config:     config,
@@ -62,6 +64,7 @@ func (ec *engineClient) updateLoop(headCh <-chan types.ChainHeadEvent) {
 	for {
 		select {
 		case <-ec.rootCtx.Done():
+			log.Debug("Stopping engine API update loop")
 			return
 
 		case event := <-headCh:
@@ -73,12 +76,14 @@ func (ec *engineClient) updateLoop(headCh <-chan types.ChainHeadEvent) {
 			fork := ec.config.ForkAtEpoch(event.BeaconHead.Epoch())
 			forkName := strings.ToLower(fork.Name)
 
+			log.Debug("Calling NewPayload", "number", event.Block.NumberU64(), "hash", event.Block.Hash())
 			if status, err := ec.callNewPayload(forkName, event); err == nil {
 				log.Info("Successful NewPayload", "number", event.Block.NumberU64(), "hash", event.Block.Hash(), "status", status)
 			} else {
 				log.Error("Failed NewPayload", "number", event.Block.NumberU64(), "hash", event.Block.Hash(), "error", err)
 			}
 
+			log.Debug("Calling ForkchoiceUpdated", "head", event.Block.Hash())
 			if status, err := ec.callForkchoiceUpdated(forkName, event); err == nil {
 				log.Info("Successful ForkchoiceUpdated", "head", event.Block.Hash(), "status", status)
 			} else {
@@ -89,13 +94,22 @@ func (ec *engineClient) updateLoop(headCh <-chan types.ChainHeadEvent) {
 }
 
 func (ec *engineClient) callNewPayload(fork string, event types.ChainHeadEvent) (string, error) {
-	execData := engine.BlockToExecutableData(event.Block, nil, nil).ExecutionPayload
+	execData := engine.BlockToExecutableData(event.Block, nil, nil, nil).ExecutionPayload
 
 	var (
 		method string
 		params = []any{execData}
 	)
 	switch fork {
+	case "electra":
+		method = "engine_newPayloadV4"
+		parentBeaconRoot := event.BeaconHead.ParentRoot
+		blobHashes := collectBlobHashes(event.Block)
+		hexRequests := make([]hexutil.Bytes, len(event.ExecRequests))
+		for i := range event.ExecRequests {
+			hexRequests[i] = hexutil.Bytes(event.ExecRequests[i])
+		}
+		params = append(params, blobHashes, parentBeaconRoot, hexRequests)
 	case "deneb":
 		method = "engine_newPayloadV3"
 		parentBeaconRoot := event.BeaconHead.ParentRoot
@@ -131,7 +145,7 @@ func (ec *engineClient) callForkchoiceUpdated(fork string, event types.ChainHead
 
 	var method string
 	switch fork {
-	case "deneb":
+	case "deneb", "electra":
 		method = "engine_forkchoiceUpdatedV3"
 	case "capella":
 		method = "engine_forkchoiceUpdatedV2"
